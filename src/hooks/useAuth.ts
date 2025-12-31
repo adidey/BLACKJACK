@@ -17,7 +17,7 @@ export function useAuth() {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
-        loadProfile(session.user.id)
+        loadProfile(session.user)
       } else {
         setLoading(false)
       }
@@ -30,7 +30,7 @@ export function useAuth() {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
-        loadProfile(session.user.id)
+        loadProfile(session.user)
       } else {
         setProfile(null)
         setLoading(false)
@@ -40,12 +40,12 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = async (user: User) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', user.id)
         .single()
 
       if (error && error.code !== 'PGRST116') {
@@ -55,15 +55,13 @@ export function useAuth() {
       if (data) {
         setProfile(data)
       } else {
-        // Get user email for username
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        const username = authUser?.email?.split('@')[0] || 'Player'
+        const username = user.email?.split('@')[0] || 'Player'
         
         // Create profile if it doesn't exist
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .insert({
-            id: userId,
+            id: user.id,
             username,
             chips: 5000,
             wins: 0,
@@ -90,7 +88,7 @@ export function useAuth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: import.meta.env.PROD ? 'https://blackjack-ad27.vercel.app' : window.location.origin,
       },
     })
     if (error) console.error('Error signing in with Google:', error)
